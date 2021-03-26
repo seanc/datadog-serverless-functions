@@ -221,6 +221,29 @@ class EventhubLogForwarder {
                     promises.push(this.formatLogAndSend(JSON_TYPE, message))
                 );
             } else {
+
+                var metadata = this.extractMetadataFromResource(message);
+
+                //manually setting for test purposes
+                metadata.source = "azure.datafactory";
+
+                if (metadata.source == "azure.datafactory") {
+
+                    if (message.hasOwnProperty('properties')) {
+                        if (message['properties'].hasOwnProperty('Output')) {
+                            if (message['properties']['Output'].hasOwnProperty('value')) {
+                                var objects = message['properties']['Output']['value'];
+                                if (Array.isArray(objects)) {
+                                    var objects = message['properties']['Output']['value'];
+                                    for (var j = 0; j < objects.length; j++) {
+                                        promises.push(this.formatLogAndSend(JSON_TYPE, objects[j]));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 promises.push(this.formatLogAndSend(JSON_TYPE, message));
             }
         }
