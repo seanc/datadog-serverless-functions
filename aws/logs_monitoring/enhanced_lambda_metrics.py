@@ -75,6 +75,8 @@ TIMED_OUT_REGEX = re.compile(
     r"Task\stimed\sout\safter\s+(?P<{}>[\d\.]+)\s+seconds".format(TIMEOUTS_METRIC_NAME)
 )
 
+PRODUCT_LOG_REGEX = re.compile(r"\{(?:[^{}])*\}")
+
 OUT_OF_MEMORY_ERROR_STRINGS = [
     "fatal error: runtime: out of memory",  # Go
     "java.lang.OutOfMemoryError",  # Java
@@ -534,7 +536,29 @@ def generate_enhanced_lambda_metrics(log, tags_cache):
     tags_from_arn = parse_lambda_tags_from_arn(log_function_arn)
     lambda_custom_tags = tags_cache.get(log_function_arn)
 
+    # product_regex_match = PRODUCT_LOG_REGEX.search(log_message)
+    # product = None
+    # try:
+    #     print("product_regex_match")
+    #     print(product_regex_match)
+    #     product_match = product_regex_match.group(0)
+    #     if product_match:
+    #         print("product_match")
+    #         print(product_match)
+    #         product_match_json = json.loads(product_match)
+    #         if "store_uuid" in product_match_json:
+    #             product = product_match_json
+    # except Exception as e:
+    #     print("exception")
+    #     print(e)
+    #     pass
+
+    # print("product")
+    # print(product)
     for parsed_metric in parsed_metrics:
+        # if product:
+        #     print("attached store_uuid tag to metric")
+        #     parsed_metric.add_tags(["store_uuid:" + product.store_uuid])
         parsed_metric.add_tags(tags_from_arn + lambda_custom_tags)
         # Submit the metric with the timestamp of the log event
         parsed_metric.set_timestamp(int(timestamp))
@@ -576,10 +600,25 @@ def parse_metrics_from_report_log(report_log_line):
             Billed Duration: 1800 ms	Memory Size: 128 MB	Max Memory Used: 98 MB	\
             XRAY TraceId: 1-5d83c0ad-b8eb33a0b1de97d804fac890	SegmentId: 31255c3b19bd3637	Sampled: true"
 
+        OR EX:
+            "2021-04-03T00:45:37.571Z	60fc9328-a56c-5ef9-8a64-cbc919b95f07
+            INFO	[dd.trace_id=6935766790358169686 dd.span_id=7427604981471811519] {
+                "store_uuid": "31dbe73c-2900-4fb7-89f6-74b209d9fbdc",
+                "supplier_url": "https://www.amazon.com/dp/B07FKT12DG?th=1&psc=1",
+                "sku": "ALL-AMZ-191497416570",
+                "upc": "191497416570",
+                "stock": null,
+                "status": "out_of_stock",
+                "supplier_variation": "Size 8 | Mid Grey/Flash Coral",
+                "retry": 33
+            }"
+
     Returns:
         metrics - DatadogMetricPoint[]
     """
 
+    print("report_log_line")
+    print(report_log_line)
     regex_match = REPORT_LOG_REGEX.search(report_log_line)
 
     if not regex_match:
